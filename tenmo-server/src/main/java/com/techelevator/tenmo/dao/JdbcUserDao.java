@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +69,9 @@ public class JdbcUserDao implements UserDao {
         }
 
         // TODO: Create the account record with initial balance
-
+        BigDecimal initialBalance = new BigDecimal("1000.00");
+        String registerAccountSql = "INSERT INTO account (user_id, balance) VALUES (?, ?)";
+        jdbcTemplate.update(registerAccountSql, newUserId, initialBalance);
         return true;
     }
 
