@@ -1,6 +1,7 @@
 package com.techelevator.tenmo.controller;
 
 import com.techelevator.tenmo.dao.AccountDao;
+import com.techelevator.tenmo.dao.TransferDao;
 import com.techelevator.tenmo.dao.UserDao;
 import com.techelevator.tenmo.model.Transfer;
 import com.techelevator.tenmo.model.User;
@@ -19,10 +20,12 @@ public class AppController {
 
     private AccountDao accountDao;
     private UserDao userDao;
+    private TransferDao transferDao;
 
-    public AppController(AccountDao accountDao, UserDao userDao) {
+    public AppController(AccountDao accountDao, UserDao userDao, TransferDao transferDao) {
         this.accountDao = accountDao;
         this.userDao = userDao;
+        this.transferDao = transferDao;
     }
 
     @GetMapping(path = "/balance")
@@ -38,20 +41,19 @@ public class AppController {
     }
 
     //TODO
-    @PostMapping(path = "/transfers")
+    @PostMapping(path = "/transfer")
     public Transfer sendMoney(@RequestBody Transfer transfer) {
         return null;
     }
 
-    //TODO
-    @GetMapping(path = "/transfers/{userId}")
-    public List<Transfer> getAllTransfersByUserId(@PathVariable Long userId) {
-        return null;
+    @GetMapping(path = "/transferByUser")
+    public List<Transfer> getAllTransfersByUser(Principal principal) {
+        String username = principal.getName();
+        return transferDao.getListOfTransfersByUser(username);
     }
 
-    //TODO
     @GetMapping(path = "/transfers/{transfersId}")
-    public Transfer getTransferDetailsByTransferId(@PathVariable Long transferId) {
-        return null;
+    public Transfer getTransferDetailsByTransferId(@PathVariable Long transferId, Principal principal) {
+        return transferDao.getTransferByTransferId(transferId);
     }
 }
