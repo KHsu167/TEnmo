@@ -13,36 +13,53 @@ import java.util.List;
 public class JdbcTransferDao implements TransferDao {
 
     private JdbcTemplate jdbcTemplate;
+    private AccountDao accountDao;
+    private UserDao userDao;
 
-    public JdbcTransferDao(JdbcTemplate jdbcTemplate) {
+    public JdbcTransferDao(JdbcTemplate jdbcTemplate, AccountDao accountDao, UserDao userDao) {
         this.jdbcTemplate = jdbcTemplate;
+        this.accountDao = accountDao;
+        this.userDao = userDao;
     }
 
     @Override
-    public Transfer sendMoney(Transfer transfer) {
+    public Transfer sendMoney(Transfer transfer, String username) {
 
         Long accountFromId = transfer.getAccountFromId();
         Long accountToId = transfer.getAccountToId();
+        BigDecimal transferAmount = transfer.getAmount();
 
+        //check if accountFrom and accountTo are two different accounts
         if (accountFromId.equals(accountToId)) {
-            return null;
-            //TODO maybe throw an exception
+            throw new IllegalArgumentException();
         }
 
-        if (transfer.getAmount().compareTo(new BigDecimal(0)) != 1) {
-            return null;
-            //TODO maybe throw an exception
+        //check if accountTo is an actual account
+        if (userDao.findUserIdByAccountId(accountToId) == -1) {
+            throw new IllegalArgumentException();
+        }
+
+        //check if transfer amount is greater than 0
+        if (transferAmount.compareTo(new BigDecimal(0)) != 1) {
+            throw new IllegalArgumentException();
+        }
+
+        //check if transfer amount is less than or equal to accountFrom balance
+        if (transferAmount.compareTo(accountDao.getBalance(accountFromId)) == 1) {
+            throw new IllegalArgumentException();
         }
 
         String sql = "INSERT INTO transfer (account_from_id, account_to_id, transfer_type_id," +
                 " transfer_status_id, amount)" +
                 " VALUES (?, ?, ?, ?, ?) RETURNING transfer_id";
+        //TODO create jdbc for status and type tables
         Long transferId = jdbcTemplate.queryForObject(sql, Long.class, transfer.getAccountFromId(),
-                transfer.getAccountToId(), transfer.getTransferTypeId(),
-                transfer.getTransferStatusId(), transfer.getAmount());
+                transfer.getAccountToId(), 1, 100, transfer.getAmount());
+
+        accountDao.updateBalance(accountFromId, accountToId, transferAmount);
 
         //TODO used the transferId to get transfer detail
-        return getTransferByTransferId(transferId);
+        return getTransferByTransferId(transferId, username);
     }
 
     @Override
@@ -51,7 +68,8 @@ public class JdbcTransferDao implements TransferDao {
         String sql = "SELECT transfer_id, account_from_id, account_to_id," +
                 " transfer_type_id, transfer_status_id, amount FROM transfer AS t" +
                 " JOIN account AS a ON t.account_from_id = a.account_id" +
-                " JOIN tenmo_user AS tu ON a.user_id = tu.user_id" +
+                " JOIN account AS a2 ON t.account_to_id = a2.account_id" +
+                " JOIN tenmo_user AS tu ON a.user_id = tu.user_id OR a2.user_id = tu.user_id" +
                 " WHERE username = ?";
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, username);
         while (results.next()) {
@@ -62,16 +80,17 @@ public class JdbcTransferDao implements TransferDao {
     }
 
     @Override
-    public Transfer getTransferByTransferId(Long transferId) {
+    public Transfer getTransferByTransferId(Long transferId, String username) {
         String sql = "SELECT transfer_id, account_from_id, account_to_id," +
-                " transfer_type_id, transfer_status_id, amount FROM transfer" +
-                " WHERE transfer_id = ?";
-        SqlRowSet result = jdbcTemplate.queryForRowSet(sql, transferId);
+                " transfer_type_id, transfer_status_id, amount FROM transfer AS t" +
+                " JOIN account AS a ON t.account_from_id = a.account_id" +
+                " JOIN account AS a2 ON t.account_to_id = a2.account_id" +
+                " JOIN tenmo_user AS tu ON a.user_id = tu.user_id OR a2.user_id = tu.user_id" +
+                " WHERE transfer_id = ? AND username = ?";
+        SqlRowSet result = jdbcTemplate.queryForRowSet(sql, transferId, username);
         if (result.next()) {
             return mapRowToTransfer(result);
         } else {
-
-            //TODO exception?
             return null;
         }
     }

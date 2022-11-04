@@ -1,6 +1,7 @@
 package com.techelevator.tenmo.dao;
 
 import com.techelevator.tenmo.model.User;
+import com.techelevator.tenmo.model.UserDTO;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
@@ -34,12 +35,12 @@ public class JdbcUserDao implements UserDao {
     }
 
     @Override
-    public List<User> findAll() {
-        List<User> users = new ArrayList<>();
-        String sql = "SELECT user_id, username FROM tenmo_user;";
-        SqlRowSet results = jdbcTemplate.queryForRowSet(sql);
+    public List<UserDTO> findAll(String username) {
+        List<UserDTO> users = new ArrayList<>();
+        String sql = "SELECT user_id, username FROM tenmo_user WHERE username <> ?;";
+        SqlRowSet results = jdbcTemplate.queryForRowSet(sql, username);
         while(results.next()) {
-            User user = mapRow(results);
+            UserDTO user = mapRow(results);
             users.add(user);
         }
         return users;
@@ -87,6 +88,20 @@ public class JdbcUserDao implements UserDao {
         return true;
     }
 
+    //TODO FIX METHOD
+    @Override
+    public Long findUserIdByAccountId(Long accountId) {
+        String sql = "SELECT tu.user_id FROM tenmo_user AS tu" +
+                " JOIN account AS a ON a.user_id = tu.user_id" +
+                " WHERE account_id = ?";
+        Long userId = jdbcTemplate.queryForObject(sql, Long.class, accountId);
+        if (userId != null) {
+            return userId;
+        } else {
+            return (long) -1;
+        }
+    }
+
     private User mapRowToUser(SqlRowSet rs) {
         User user = new User();
         user.setId(rs.getLong("user_id"));
@@ -97,11 +112,10 @@ public class JdbcUserDao implements UserDao {
         return user;
     }
 
-    private User mapRow(SqlRowSet rs) {
-        User user = new User();
+    private UserDTO mapRow(SqlRowSet rs) {
+        UserDTO user = new UserDTO();
         user.setId(rs.getLong("user_id"));
         user.setUsername(rs.getString("username"));
-        user.setActivated(true);
         return user;
     }
 }

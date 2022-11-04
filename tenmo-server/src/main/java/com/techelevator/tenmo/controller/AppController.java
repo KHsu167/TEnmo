@@ -3,14 +3,15 @@ package com.techelevator.tenmo.controller;
 import com.techelevator.tenmo.dao.AccountDao;
 import com.techelevator.tenmo.dao.TransferDao;
 import com.techelevator.tenmo.dao.UserDao;
+import com.techelevator.tenmo.model.Account;
 import com.techelevator.tenmo.model.Transfer;
-import com.techelevator.tenmo.model.User;
+import com.techelevator.tenmo.model.UserDTO;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -29,31 +30,50 @@ public class AppController {
     }
 
     @GetMapping(path = "/balance")
-    public BigDecimal getBalance(Principal principal) {
+    public Account getBalance(Principal principal) {
         String username = principal.getName();
-        return accountDao.getBalance(username);
+        Account account = accountDao.getAccountBalance(username);
+        if (account == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Username not found.");
+        } else {
+            return account;
+        }
     }
 
-    //TODO need to only show user_id and username
     @GetMapping(path = "/users")
-    public List<User> getAllUsers() {
-        return userDao.findAll();
+    public List<UserDTO> getAllUsers(Principal principal) {
+        String username = principal.getName();
+        return userDao.findAll(username);
     }
 
-    //TODO
+    @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path = "/transfer")
-    public Transfer sendMoney(@RequestBody Transfer transfer) {
-        return null;
+    public Transfer sendMoney(@RequestBody Transfer transfer, Principal principal) {
+        String username = principal.getName();
+        try {
+            return transferDao.sendMoney(transfer, username);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
+        }
     }
 
-    @GetMapping(path = "/transferByUser")
+    @GetMapping(path = "/all-transfer")
     public List<Transfer> getAllTransfersByUser(Principal principal) {
         String username = principal.getName();
-        return transferDao.getListOfTransfersByUser(username);
+        List<Transfer> transfers = transferDao.getListOfTransfersByUser(username);
+        if (transfers == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No transfers found");
+        }
+        return transfers;
     }
 
-    @GetMapping(path = "/transfers/{transfersId}")
+    @GetMapping(path = "/transfers/{transferId}")
     public Transfer getTransferDetailsByTransferId(@PathVariable Long transferId, Principal principal) {
-        return transferDao.getTransferByTransferId(transferId);
+        String username = principal.getName();
+        Transfer transfer = transferDao.getTransferByTransferId(transferId, username);
+        if (transfer == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found.");
+        }
+        return transfer;
     }
 }
