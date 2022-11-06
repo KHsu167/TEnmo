@@ -8,6 +8,8 @@ public interface TransferDao {
 
     Transfer sendMoney(Transfer transfer, String username);
 
+    Transfer requestMoney(Transfer transfer, String username);
+
     List<Transfer> getListOfTransfersByUser(String username);
 
     Transfer getTransferByTransferId(Long transferId, String username);

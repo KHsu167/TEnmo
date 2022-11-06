@@ -63,6 +63,29 @@ public class JdbcTransferDao implements TransferDao {
     }
 
     @Override
+    public Transfer requestMoney(Transfer transfer, String username) {
+        Long accountFromId = transfer.getAccountFromId();
+        Long accountToId = transfer.getAccountToId();
+        BigDecimal transferAmount = transfer.getAmount();
+        if (accountFromId.equals(accountToId)) {
+            throw new IllegalArgumentException();
+        }
+        if (userDao.findUserIdByAccountId(accountToId) == -1) {
+            throw new IllegalArgumentException();
+        }
+        if (transferAmount.compareTo(new BigDecimal(0)) != 1) {
+            throw new IllegalArgumentException();
+        }
+        String sql = "INSERT INTO transfer (account_from_id, account_to_id, transfer_type_id," +
+                " transfer_status_id, amount)" +
+                " VALUES (?, ?, ?, ?, ?) RETURNING transfer_id";
+        Long transferId = jdbcTemplate.queryForObject(sql, Long.class, transfer.getAccountFromId(),
+                transfer.getAccountToId(), 2, 101, transfer.getAmount());
+        return getTransferByTransferId(transferId, username);
+    }
+
+
+    @Override
     public List<Transfer> getListOfTransfersByUser(String username) {
         List<Transfer> transfers = new ArrayList<>();
         String sql = "SELECT transfer_id, account_from_id, account_to_id," +

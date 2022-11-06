@@ -48,13 +48,22 @@ public class AppController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path = "/transfer")
-    public Transfer sendMoney(@RequestBody Transfer transfer, Principal principal) {
+    public Transfer sendMoney(@RequestBody Transfer transfer, Principal principal, @RequestParam int transferTypeId ) {
         String username = principal.getName();
-        try {
-            return transferDao.sendMoney(transfer, username);
-        } catch (IllegalArgumentException e) {
+        if (transferTypeId == 1) {
+            try {
+                return transferDao.sendMoney(transfer, username);
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
+            }
+        } else if (transferTypeId == 2) {
+            try {
+                return transferDao.requestMoney(transfer, username);
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal request.");
+            }
+        } else
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
-        }
     }
 
     @GetMapping(path = "/all-transfer")
@@ -76,4 +85,6 @@ public class AppController {
         }
         return transfer;
     }
+
+
 }
