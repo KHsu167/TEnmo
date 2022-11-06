@@ -48,7 +48,7 @@ public class AppController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path = "/transfer")
-    public Transfer sendMoney(@RequestBody Transfer transfer, Principal principal, @RequestParam int transferTypeId ) {
+    public Transfer sendMoney(@RequestBody Transfer transfer, Principal principal, @RequestParam int transferTypeId) {
         String username = principal.getName();
         if (transferTypeId == 1) {
             try {
@@ -86,5 +86,9 @@ public class AppController {
         return transfer;
     }
 
-
+    @GetMapping(path = "/transfers")
+    public boolean transferResponse (Principal principal, @RequestParam boolean accept) {
+        String username = principal.getName();
+        return false;
+    }
 }
