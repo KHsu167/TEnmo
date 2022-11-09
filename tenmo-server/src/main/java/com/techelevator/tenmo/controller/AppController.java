@@ -3,6 +3,8 @@ package com.techelevator.tenmo.controller;
 import com.techelevator.tenmo.dao.AccountDao;
 import com.techelevator.tenmo.dao.TransferDao;
 import com.techelevator.tenmo.dao.UserDao;
+import com.techelevator.tenmo.exception.IllegalUserRejectOrApproveException;
+import com.techelevator.tenmo.exception.NotAPendingTransactionException;
 import com.techelevator.tenmo.model.Account;
 import com.techelevator.tenmo.model.Transfer;
 import com.techelevator.tenmo.model.UserDTO;
@@ -48,22 +50,27 @@ public class AppController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path = "/transfer")
-    public Transfer sendMoney(@RequestBody Transfer transfer, Principal principal, @RequestParam int transferTypeId ) {
+    public Transfer transfer(@RequestBody Transfer transfer, @RequestParam String type_name, Principal principal) {
         String username = principal.getName();
-        if (transferTypeId == 1) {
-            try {
-                return transferDao.sendMoney(transfer, username);
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
-            }
-        } else if (transferTypeId == 2) {
-            try {
-                return transferDao.requestMoney(transfer, username);
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal request.");
-            }
-        } else
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
+        try {
+            return transferDao.sendOrRequest(transfer, type_name, username);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer or request");
+        }
+//        if (transferTypeId == 1) {
+//            try {
+//                return transferDao.sendMoney(transfer, username);
+//            } catch (IllegalArgumentException e) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
+//            }
+//        } else if (transferTypeId == 2) {
+//            try {
+//                return transferDao.requestMoney(transfer, username);
+//            } catch (IllegalArgumentException e) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal request.");
+//            }
+//        } else
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
     }
 
     @GetMapping(path = "/all-transfer")
@@ -86,5 +93,18 @@ public class AppController {
         return transfer;
     }
 
-
+    @ResponseStatus(HttpStatus.OK)
+    @PutMapping(path = "/pending/{transferId}")
+    public void rejectOrApprove(@PathVariable Long transferId, @RequestParam String status_name, Principal principal) {
+        String username = principal.getName();
+        try {
+            transferDao.rejectOrApprove(transferId, status_name, username);
+        } catch (IllegalUserRejectOrApproveException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This is your own request!");
+        } catch (NotAPendingTransactionException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This is not a pending request");
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance to complete request");
+        }
+    }
 }

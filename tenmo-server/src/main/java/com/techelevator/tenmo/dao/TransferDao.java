@@ -6,9 +6,11 @@ import java.util.List;
 
 public interface TransferDao {
 
-    Transfer sendMoney(Transfer transfer, String username);
+    Transfer sendOrRequest(Transfer transfer, String typeName, String username);
 
-    Transfer requestMoney(Transfer transfer, String username);
+//    Transfer requestMoney(Transfer transfer, String username);
+
+    void rejectOrApprove(Long transferId, String statusName, String username);
 
     List<Transfer> getListOfTransfersByUser(String username);
 

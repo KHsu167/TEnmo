@@ -88,15 +88,14 @@ public class JdbcUserDao implements UserDao {
         return true;
     }
 
-    //TODO FIX METHOD
     @Override
     public Long findUserIdByAccountId(Long accountId) {
-        String sql = "SELECT tu.user_id FROM tenmo_user AS tu" +
+        String sql = "SELECT tu.user_id AS user_id FROM tenmo_user AS tu" +
                 " JOIN account AS a ON a.user_id = tu.user_id" +
                 " WHERE account_id = ?";
-        Long userId = jdbcTemplate.queryForObject(sql, Long.class, accountId);
-        if (userId != null) {
-            return userId;
+        SqlRowSet result = jdbcTemplate.queryForRowSet(sql, accountId);
+        if (result.next()) {
+            return result.getLong("user_id");
         } else {
             return (long) -1;
         }
