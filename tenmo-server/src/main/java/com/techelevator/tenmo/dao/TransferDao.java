@@ -8,7 +8,7 @@ public interface TransferDao {
 
     Transfer sendOrRequest(Transfer transfer, String typeName, String username);
 
-    Transfer requestMoney(Transfer transfer, String username);
+//    Transfer requestMoney(Transfer transfer, String username);
 
     void rejectOrApprove(Long transferId, String statusName, String username);
 

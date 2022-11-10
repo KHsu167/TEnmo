@@ -5,6 +5,7 @@ import com.techelevator.tenmo.exception.NotAPendingTransactionException;
 import com.techelevator.tenmo.model.Transfer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -27,35 +28,33 @@ public class JdbcTransferDao implements TransferDao {
 
     @Override
     public Transfer sendOrRequest(Transfer transfer, String typeName, String username) {
-
         Long accountFromId = transfer.getAccountFromId();
         Long accountToId = transfer.getAccountToId();
         BigDecimal transferAmount = transfer.getAmount();
-
         String sql = "INSERT INTO transfer (account_from_id, account_to_id, transfer_type_id," +
                 " transfer_status_id, amount)" +
                 " VALUES (?, ?, ?, ?, ?) RETURNING transfer_id";
-
         //check if accountFrom and accountTo are two different accounts
         if (accountFromId.equals(accountToId)) {
             throw new IllegalArgumentException();
         }
-
         //check if accountTo is an actual account
         if (userDao.findUserIdByAccountId(accountToId) == -1) {
             throw new IllegalArgumentException();
         }
-
         //check if transfer amount is greater than 0
         if (transferAmount.compareTo(new BigDecimal(0)) != 1) {
             throw new IllegalArgumentException();
         }
-
+        if (typeName.toLowerCase().equals("request")) {
+            Long transferId = jdbcTemplate.queryForObject(sql, Long.class, transfer.getAccountFromId(),
+                    transfer.getAccountToId(), 2, 101, transfer.getAmount());
+            return getTransferByTransferId(transferId, username);
+        }
         //check if transfer amount is less than or equal to accountFrom balance
         if (transferAmount.compareTo(accountDao.getBalance(accountFromId)) == 1) {
             throw new IllegalArgumentException();
         }
-
         if (typeName.toLowerCase().equals("send")) {
             Long transferId = jdbcTemplate.queryForObject(sql, Long.class, transfer.getAccountFromId(),
                     transfer.getAccountToId(), 1, 100, transfer.getAmount());
@@ -66,29 +65,29 @@ public class JdbcTransferDao implements TransferDao {
         }
     }
 
-    @Override
-    public Transfer requestMoney(Transfer transfer, String username) {
-
-        Long accountFromId = transfer.getAccountFromId();
-        Long accountToId = transfer.getAccountToId();
-        BigDecimal transferAmount = transfer.getAmount();
-
-        if (accountFromId.equals(accountToId)) {
-            throw new IllegalArgumentException();
-        }
-        if (userDao.findUserIdByAccountId(accountToId) == -1) {
-            throw new IllegalArgumentException();
-        }
-        if (transferAmount.compareTo(new BigDecimal(0)) != 1) {
-            throw new IllegalArgumentException();
-        }
-        String sql = "INSERT INTO transfer (account_from_id, account_to_id, transfer_type_id," +
-                " transfer_status_id, amount)" +
-                " VALUES (?, ?, ?, ?, ?) RETURNING transfer_id";
-        Long transferId = jdbcTemplate.queryForObject(sql, Long.class, transfer.getAccountFromId(),
-                transfer.getAccountToId(), 2, 101, transfer.getAmount());
-        return getTransferByTransferId(transferId, username);
-    }
+//    @Override
+//    public Transfer requestMoney(Transfer transfer, String username) {
+//
+//        Long accountFromId = transfer.getAccountFromId();
+//        Long accountToId = transfer.getAccountToId();
+//        BigDecimal transferAmount = transfer.getAmount();
+//
+//        if (accountFromId.equals(accountToId)) {
+//            throw new IllegalArgumentException();
+//        }
+//        if (userDao.findUserIdByAccountId(accountToId) == -1) {
+//            throw new IllegalArgumentException();
+//        }
+//        if (transferAmount.compareTo(new BigDecimal(0)) != 1) {
+//            throw new IllegalArgumentException();
+//        }
+//        String sql = "INSERT INTO transfer (account_from_id, account_to_id, transfer_type_id," +
+//                " transfer_status_id, amount)" +
+//                " VALUES (?, ?, ?, ?, ?) RETURNING transfer_id";
+//        Long transferId = jdbcTemplate.queryForObject(sql, Long.class, transfer.getAccountFromId(),
+//                transfer.getAccountToId(), 2, 101, transfer.getAmount());
+//        return getTransferByTransferId(transferId, username);
+//    }
 
     @Override
     public void rejectOrApprove(Long transferId, String statusName, String username) {
@@ -131,7 +130,7 @@ public class JdbcTransferDao implements TransferDao {
                 " JOIN account AS a ON t.account_from_id = a.account_id" +
                 " JOIN account AS a2 ON t.account_to_id = a2.account_id" +
                 " JOIN tenmo_user AS tu ON a.user_id = tu.user_id OR a2.user_id = tu.user_id" +
-                " WHERE username = ?";
+                " WHER1E username = ?";
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, username);
         while (results.next()) {
             Transfer transfer = mapRowToTransfer(results);

@@ -52,21 +52,27 @@ public class AppController {
     @PostMapping(path = "/transfer")
     public Transfer transfer(@RequestBody Transfer transfer, @RequestParam String type_name, Principal principal) {
         String username = principal.getName();
-        if (transferTypeId == 1) {
-            try {
-                return transferDao.sendMoney(transfer, username);
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
-            }
-        } else if (transferTypeId == 2) {
-            try {
-                return transferDao.requestMoney(transfer, username);
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal request.");
-            }
-        } else
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
+        try {
+           return transferDao.sendOrRequest(transfer, type_name, username);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal Transfer or Request");
+        }
     }
+
+//        if (type_name == 1) {
+//            try {
+//                return transferDao.type_name(transfer, username);
+//            } catch (IllegalArgumentException e) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
+//            }
+//        } else if (type_name == 2) {
+//            try {
+//                return transferDao.type_name(transfer, username);
+//            } catch (IllegalArgumentException e) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal request.");
+//            }
+//        } else
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Illegal transfer.");
 
     @GetMapping(path = "/all-transfer")
     public List<Transfer> getAllTransfersByUser(Principal principal) {
